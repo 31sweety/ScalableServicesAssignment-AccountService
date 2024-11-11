@@ -1,6 +1,7 @@
 // accountService.js
 const express = require('express');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 const app = express();
 app.use(express.json());
 
@@ -14,9 +15,21 @@ const accountSchema = new mongoose.Schema({
 });
 const Account = mongoose.model('Account', accountSchema);
 
+// Middleware to verify JWT
+const authenticateToken = (req, res, next) => {
+    const token = req.headers['authorization'].split(" ")[1];
+    if (!token) return res.status(403).json({ message: 'Access denied - No JWT token' });
+
+    jwt.verify(token, 'secretKey', (err, user) => {
+        if (err) return res.status(403).json({ message: 'Invalid token' });
+        req.user = user;
+        next();
+    });
+};
+
 // Endpoint to get account balance
-app.get('/balance', async (req, res) => {
-    const account = await Account.findOne({ userId: req.query.userId });
+app.get('/balance', authenticateToken, async (req, res) => {
+    const account = await Account.findOne({ userId: req.user.userId });
     if (account) {
         res.json({ balance: account.balance });
     } else {
@@ -25,10 +38,10 @@ app.get('/balance', async (req, res) => {
 });
 
 // Endpoint to create an account
-app.post('/create-account', async (req, res) => {
+app.post('/create-account', authenticateToken, async (req, res) => {
     const newAccount = new Account(req.body);
     await newAccount.save();
-    res.json({ message: 'Account created successfully' });
+    res.json({ message: `Account created successfully for userId ${newAccount.userId} with starting balance ${newAccount.balance}` });
 });
 
 app.listen(3002, () => console.log('Account Service running on port 3002'));
