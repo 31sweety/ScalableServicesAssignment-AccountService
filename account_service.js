@@ -15,7 +15,7 @@ const accountSchema = new mongoose.Schema({
 });
 const Account = mongoose.model('Account', accountSchema);
 
-// Middleware to verify JWT
+// Middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
     const token = req.headers['authorization'].split(" ")[1];
     if (!token) return res.status(403).json({ message: 'Access denied - No JWT token' });
